@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib.auth import authenticate
+from django.contrib.auth.signals import user_logged_in
 from django.utils.encoding import smart_text
 from django.utils.translation import ugettext as _
 
@@ -308,6 +309,10 @@ class PasswordGrantForm(ScopeMixin, OAuthForm):
 
         user = authenticate(username=data.get('username'),
                             password=data.get('password'))
+
+        # Manually send the logged in signal because we're not using the normal
+        # login flow.
+        user_logged_in.send(sender=User, user=user, request=None)
 
         if user is None:
             raise OAuthValidationError({'error': 'invalid_grant'})
