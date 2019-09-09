@@ -1,3 +1,5 @@
+import logging
+
 from django import forms
 from django.contrib.auth import authenticate
 from django.contrib.auth.signals import user_logged_in
@@ -11,6 +13,7 @@ from provider.oauth2.models import Client, Grant, RefreshToken
 from provider.scope import SCOPE_NAMES
 from provider.utils import now
 
+log = logging.getLogger(__name__)
 
 class ClientForm(forms.ModelForm):
     """
@@ -310,12 +313,14 @@ class PasswordGrantForm(ScopeMixin, OAuthForm):
         user = authenticate(username=data.get('username'),
                             password=data.get('password'))
 
-        # Manually send the logged in signal because we're not using the normal
-        # login flow.
-        user_logged_in.send(sender=User, user=user, request=None)
-
         if user is None:
             raise OAuthValidationError({'error': 'invalid_grant'})
+
+        log.info("OAUTH2 authenticated user %s", user)
+        # Manually send the logged in signal because we're not using the normal
+        # login flow.
+        log.info("sending user_logged_in signal")
+        user_logged_in.send(sender=User, user=user, request=None)
 
         data['user'] = user
         return data
